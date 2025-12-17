@@ -1,0 +1,46 @@
+########################################
+#ENV / SECRETS
+########################################
+.env
+.env.*
+!.env.example
+
+########################################
+#PYTHON
+########################################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+########################################
+# POETRY / VENV
+########################################
+.venv/
+.poetry/
+.pypoetry/
+# (Poetry guarda los virtualenvs fuera del proyecto, pero por si acaso)
+
+########################################
+# TEST / CACHE
+########################################
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+########################################
+# RAG / DATA (NO versionar índices)
+########################################
+data/faiss_index/
+data/docs/*
+!data/docs/.gitkeep
+
+########################################
+# OS / EDITORS
+########################################
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

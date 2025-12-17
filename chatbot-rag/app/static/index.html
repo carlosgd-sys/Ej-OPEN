@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat RAG</title>
+
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --primary: #1f2937;
+      --accent: #2563eb;
+      --bot: #e5e7eb;
+      --user: #2563eb;
+      --text: #111827;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 20px;
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 720px;
+      margin: auto;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+      animation: fadeIn 0.6s ease;
+    }
+
+    header {
+      padding: 16px;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .chat {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      line-height: 1.5;
+      white-space: pre-wrap;
+      opacity: 0;
+      animation: slideUp 0.3s ease forwards;
+    }
+
+    .bot {
+      background: var(--bot);
+      align-self: flex-start;
+    }
+
+    .user {
+      background: var(--accent);
+      color: white;
+      align-self: flex-end;
+    }
+
+    .typing {
+      width: 50px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .typing span {
+      width: 8px;
+      height: 8px;
+      background: #6b7280;
+      border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+
+    .typing span:nth-child(2) { animation-delay: .2s; }
+    .typing span:nth-child(3) { animation-delay: .4s; }
+
+    .input-area {
+      border-top: 1px solid #e5e7eb;
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    textarea {
+      flex: 1;
+      resize: none;
+      border-radius: var(--radius);
+      border: 1px solid #d1d5db;
+      padding: 10px;
+      font-size: 14px;
+      height: 60px;
+      transition: border 0.2s ease;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0 18px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #contact-form {
+      margin: 16px;
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: var(--radius);
+      display: none;
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    #contact-form input,
+    #contact-form textarea {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: var(--radius);
+      border: 1px solid #d1d5db;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0; }
+      40% { opacity: 1; }
+    }
+
+    @media (max-width: 600px) {
+      .container { height: 95vh; }
+      .message { max-width: 95%; }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <header>Asistente</header>
+
+  <div class="chat" id="chat">
+    <div class="message bot">Hola, ¿en qué puedo ayudarte?</div>
+  </div>
+
+  <div id="contact-form">
+    <h3>Contacto</h3>
+    <input id="name" placeholder="Nombre">
+    <input id="email" placeholder="Email">
+    <textarea id="message" placeholder="Mensaje"></textarea>
+    <button onclick="sendProspect()">Enviar</button>
+  </div>
+
+  <div class="input-area">
+    <textarea id="question" placeholder="Escribe tu mensaje..."></textarea>
+    <button id="sendBtn" onclick="sendQuestion()">Enviar</button>
+  </div>
+</div>
+
+<script>
+const chat = document.getElementById("chat");
+const sendBtn = document.getElementById("sendBtn");
+
+function addMessage(content, sender, typing=false) {
+  const div = document.createElement("div");
+  div.className = `message ${sender}`;
+
+  if (typing) {
+    div.innerHTML = `<div class="typing">
+      <span></span><span></span><span></span>
+    </div>`;
+  } else {
+    div.innerText = content;
+  }
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+async function sendQuestion() {
+  const textarea = document.getElementById("question");
+  const question = textarea.value.trim();
+  if (!question) return;
+
+  addMessage(question, "user");
+  textarea.value = "";
+  sendBtn.disabled = true;
+
+  const typingMsg = addMessage("", "bot", true);
+
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question })
+    });
+
+    const data = await res.json();
+    typingMsg.innerText = data.answer;
+
+    if (data.show_form) {
+      document.getElementById("contact-form").style.display = "block";
+    }
+
+  } catch {
+    typingMsg.innerText = "Error al conectar con el servidor";
+  }
+
+  sendBtn.disabled = false;
+}
+
+async function sendProspect() {
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const message = document.getElementById("message").value;
+
+  if (!name || !email) {
+    alert("Completa nombre y email");
+    return;
+  }
+
+  await fetch("/prospect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, message })
+  });
+
+  addMessage(
+    "Gracias. Nuestro equipo se pondrá en contacto contigo.",
+    "bot"
+  );
+
+  document.getElementById("contact-form").style.display = "none";
+}
+</script>
+
+</body>
+</html>
