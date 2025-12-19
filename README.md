@@ -175,7 +175,7 @@ El watcher detecta cambios y reindexa automáticamente.
 Usando ejecución agnóstica al PATH:
 
 ```
-poetry run python -c "from app.vectorstore import build_vectorstore; build_vectorstore()"
+poetry run python -c "from app.db.vectorstore import build_vectorstore; build_vectorstore()"
 ```
 poetry run python -c "from app.vectorstore import build_vectorstore; build_vectorstore()"
 ```
